@@ -2,8 +2,8 @@
 <html lang="ms">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Solat Tracker Pro - Official Cloud</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Solat Tracker Pro - Cloud</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root { 
@@ -11,7 +11,7 @@
       --red: #e74c3c; --yellow: #f1c40f; 
       --green: #2ecc71; --gold: #f39c12; --grey: #aaa; 
     }
-    body { margin:0; background: var(--bg); font-family: system-ui, -apple-system, sans-serif; color: #333; overflow-x: hidden; }
+    body { margin:0; background: var(--bg); font-family: system-ui, -apple-system, sans-serif; color: #333; overflow-x: hidden; user-select: none; }
     
     /* AUTH SCREEN */
     #auth-screen { max-width: 400px; margin: 80px auto; padding: 25px; text-align: center; }
@@ -26,9 +26,9 @@
     .card { background: var(--card); border-radius: 24px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
 
     /* DATE SCROLL BAR */
-    .date-scroll { display: flex; overflow-x: auto; gap: 10px; padding: 10px 0; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+    .date-scroll { display: flex; overflow-x: auto; gap: 10px; padding: 10px 0; scrollbar-width: none; -webkit-overflow-scrolling: touch; cursor: grab; active: grabbing; }
     .date-scroll::-webkit-scrollbar { display: none; }
-    .day-box { min-width: 65px; padding: 15px 5px; background: #f0f0f0; border-radius: 18px; text-align: center; cursor: pointer; flex-shrink: 0; transition: 0.2s; color: #666; }
+    .day-box { min-width: 65px; padding: 15px 5px; background: #f0f0f0; border-radius: 18px; text-align: center; cursor: pointer; flex-shrink: 0; transition: 0.2s; color: #666; pointer-events: auto; }
     .day-box.active { background: #000; color: #fff; transform: scale(1.05); font-weight: bold; }
 
     /* PRAYER LIST */
@@ -44,7 +44,7 @@
     .p-4 { background: var(--grey); } 
 
     /* HEATMAP */
-    .hm-wrap { display: flex; overflow-x: auto; gap: 8px; padding: 10px 5px; scrollbar-width: none; }
+    .hm-wrap { display: flex; overflow-x: auto; gap: 8px; padding: 10px 5px; scrollbar-width: none; cursor: grab; }
     .hm-wrap::-webkit-scrollbar { display: none; }
     .hm-col { display: flex; flex-direction: column; gap: 4px; align-items: center; flex-shrink: 0; }
     .hm-cell { width: 19px; height: 19px; border-radius: 4px; }
@@ -80,14 +80,14 @@
   <div class="card" id="prayerList"></div>
 
   <div class="card">
-    <h4 style="margin:0 0 10px 0">Heatmap (Supabase Cloud)</h4>
+    <h4 style="margin:0 0 10px 0">Heatmap (Cloud)</h4>
     <div class="hm-wrap" id="heatmapGrid"></div>
   </div>
 </div>
 
 <div class="popup" id="modal">
   <div class="popup-box">
-    <h3 id="modalTitle" style="margin:0; text-transform: uppercase; letter-spacing: 1px;">STATUS SOLAT</h3>
+    <h3 id="modalTitle" style="margin:0; text-transform: uppercase;">STATUS SOLAT</h3>
     <p id="modalSub" style="font-size:12px; color:#666; margin:5px 0 0 0"></p>
     <div class="grid">
       <button style="background:var(--red)" onclick="submitStatus(0)">Tak</button>
@@ -100,56 +100,74 @@
 </div>
 
 <script>
-  // CONFIGURATION
   const SB_URL = "https://doekvketftrtaetcrdnz.supabase.co";
   const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvZWt2a2V0ZnRydGFldGNyZG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNzgzNjcsImV4cCI6MjA4Mzk1NDM2N30.yc3g2mNCGpQCE3E90UcP0zb0g4NFLDv_2ZgtlXBHzMc"; 
   const sb = supabase.createClient(SB_URL, SB_KEY);
 
   let user = null;
-  let selectedDate = new Date().toLocaleDateString('sv'); // Default tarikh hari ini
+  let selectedDate = new Date().toLocaleDateString('sv');
   let currentSolatKey = "";
   let cache = {};
 
-  // AUTHENTICATION LOGIC
+  // --- DRAG TO SCROLL LOGIC ---
+  function enableDragScroll(el) {
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+
+    el.addEventListener('mousedown', (e) => {
+      isDown = true;
+      el.style.cursor = 'grabbing';
+      startX = e.pageX - el.offsetLeft;
+      scrollLeft = el.scrollLeft;
+    });
+    el.addEventListener('mouseleave', () => {
+      isDown = false;
+      el.style.cursor = 'grab';
+    });
+    el.addEventListener('mouseup', () => {
+      isDown = false;
+      el.style.cursor = 'grab';
+    });
+    el.addEventListener('mousemove', (e) => {
+      if (!isDown) return;
+      e.preventDefault();
+      const x = e.pageX - el.offsetLeft;
+      const walk = (x - startX) * 2;
+      el.scrollLeft = scrollLeft - walk;
+    });
+  }
+
   async function checkUser() {
     const { data: { session } } = await sb.auth.getSession();
-    if (session) {
-      user = session.user;
-      initApp();
-    }
+    if (session) { user = session.user; initApp(); }
   }
 
   async function authAction() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
-    
     if (error) {
       const { error: signUpError } = await sb.auth.signUp({ email, password });
       if (signUpError) document.getElementById('auth-msg').innerText = signUpError.message;
-      else document.getElementById('auth-msg').innerText = "Akaun didaftar! Sila semak emel anda.";
-    } else {
-      user = data.user;
-      initApp();
-    }
+      else document.getElementById('auth-msg').innerText = "Akaun didaftar! Sila semak emel.";
+    } else { user = data.user; initApp(); }
   }
 
-  function logout() {
-    sb.auth.signOut().then(() => location.reload());
-  }
+  function logout() { sb.auth.signOut().then(() => location.reload()); }
 
-  // INITIALIZATION
   function initApp() {
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('app-screen').style.display = 'block';
     initDateBar();
     fetchLogs();
+    enableDragScroll(document.getElementById('dateBar'));
+    enableDragScroll(document.getElementById('heatmapGrid').parentElement);
   }
 
   function initDateBar() {
     const bar = document.getElementById("dateBar");
     bar.innerHTML = "";
-    // Menjana 30 hari ke belakang
     for(let i=30; i>=0; i--) {
       let d = new Date(); d.setDate(d.getDate() - i);
       let iso = d.toLocaleDateString('sv'); 
@@ -166,41 +184,29 @@
       bar.appendChild(chip);
     }
     updateFullDateDisplay(selectedDate);
-    // Autoscroll bar tarikh ke tarikh hari ini (paling kanan)
     setTimeout(() => { bar.scrollLeft = bar.scrollWidth; }, 100);
   }
 
   function updateFullDateDisplay(isoDate) {
-    const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
-    document.getElementById("fullDateText").innerText = new Date(isoDate).toLocaleDateString('ms-MY', options);
+    const opt = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+    document.getElementById("fullDateText").innerText = new Date(isoDate).toLocaleDateString('ms-MY', opt);
   }
 
-  // DATA FETCHING
   async function fetchLogs() {
     const { data } = await sb.from('solat_logs').select('*').eq('user_id', user.id);
-    if (data) {
-      data.forEach(d => cache[d.date] = d);
-      renderPrayers();
-      renderHeatmap();
-    }
+    if (data) { data.forEach(d => cache[d.date] = d); renderPrayers(); renderHeatmap(); }
   }
 
-  // UI RENDERING
   function renderPrayers() {
     const SOLAT = ["subuh", "zohor", "asar", "maghrib", "isyak"];
     const LABELS = ["Tak", "Lewat", "Awal", "Jemaah", "Belum"];
     const CSS = ["p-0", "p-1", "p-2", "p-3", "p-4"];
     const list = document.getElementById("prayerList");
     const d = cache[selectedDate] || {};
-    
     list.innerHTML = "";
     SOLAT.forEach(s => {
       let v = d[s] !== undefined ? d[s] : 4;
-      list.innerHTML += `
-        <div class="row">
-          <b style="text-transform:capitalize">${s}</b>
-          <div class="pill ${CSS[v]}" onclick="openModal('${s}')">${LABELS[v]}</div>
-        </div>`;
+      list.innerHTML += `<div class="row"><b style="text-transform:capitalize">${s}</b><div class="pill ${CSS[v]}" onclick="openModal('${s}')">${LABELS[v]}</div></div>`;
     });
   }
 
@@ -211,18 +217,13 @@
     document.getElementById("modal").classList.add("show");
   }
 
-  function closeModal() {
-    document.getElementById("modal").classList.remove("show");
-  }
+  function closeModal() { document.getElementById("modal").classList.remove("show"); }
 
   async function submitStatus(val) {
     closeModal();
     const up = { user_id: user.id, date: selectedDate };
     up[currentSolatKey] = val;
-
-    // Simpan ke Supabase (Upsert)
     const { error } = await sb.from('solat_logs').upsert(up, { onConflict: 'user_id, date' });
-    
     if (!error) { 
       if(!cache[selectedDate]) cache[selectedDate] = up;
       cache[selectedDate][currentSolatKey] = val; 
@@ -232,16 +233,14 @@
   }
 
   function renderHeatmap() {
-    const wrap = document.querySelector(".hm-wrap");
+    const wrap = document.getElementById("heatmapGrid").parentElement;
     const grid = document.getElementById("heatmapGrid");
     grid.innerHTML = "";
-    // Heatmap untuk 30 hari ke belakang
     for(let i=29; i>=0; i--) {
       let d = new Date(); d.setDate(d.getDate() - i);
       let iso = d.toLocaleDateString('sv');
       let data = cache[iso] || {};
-      let col = document.createElement("div"); 
-      col.className = "hm-col";
+      let col = document.createElement("div"); col.className = "hm-col";
       col.innerHTML = `<span style="font-size:8px; color:#999">${d.getDate()}</span>`;
       ["subuh","zohor","asar","maghrib","isyak"].forEach(s => {
         let v = data[s] !== undefined ? data[s] : 4;
@@ -249,7 +248,6 @@
       });
       grid.appendChild(col);
     }
-    // Autoscroll heatmap ke tarikh hari ini (paling kanan)
     setTimeout(() => { wrap.scrollLeft = wrap.scrollWidth; }, 100);
   }
 
