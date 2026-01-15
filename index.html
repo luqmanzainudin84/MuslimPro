@@ -14,16 +14,22 @@
     body { margin:0; background: var(--bg); font-family: system-ui, -apple-system, sans-serif; color: #333; }
     .container { max-width: 430px; margin: auto; padding: 16px; position: relative; display: none; }
     
-    /* LOGIN UI */
+    /* AUTH SCREEN */
     #auth-screen { max-width: 400px; margin: 80px auto; padding: 25px; text-align: center; }
     .btn-login { background: #000; color: #fff; border: none; padding: 15px; width: 100%; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; }
     input { width: 100%; padding: 14px; margin: 8px 0; border-radius: 12px; border: 1px solid #ddd; box-sizing: border-box; }
 
-    /* APP UI */
+    /* APP HEADER & NAV */
     .btn-menu { position: absolute; top: 15px; right: 16px; background: #000; color: #fff; text-decoration: none; padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer; border: none; z-index: 100; }
     h1 { text-align: center; margin: 10px 0 0 0; font-size: 22px; }
-    .subdate { text-align: center; color: #666; margin-bottom: 20px; font-size: 14px; }
+    .subdate { text-align: center; color: #666; margin-bottom: 20px; font-size: 14px; min-height: 20px; }
     .card { background: var(--card); border-radius: 24px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+
+    /* DATE SCROLL BAR - Bagi tarikh boleh pilih */
+    .date-scroll { display: flex; overflow-x: auto; gap: 10px; padding: 10px 0; scrollbar-width: none; -webkit-overflow-scrolling: touch; cursor: grab; }
+    .date-scroll::-webkit-scrollbar { display: none; }
+    .day-box { min-width: 65px; padding: 15px 5px; background: #f0f0f0; border-radius: 18px; text-align: center; cursor: pointer; flex-shrink: 0; transition: 0.2s; color: #666; }
+    .day-box.active { background: #000; color: #fff; transform: scale(1.05); font-weight: bold; }
 
     /* PRAYER ROWS */
     .row { display: flex; justify-content: space-between; align-items: center; padding: 14px 5px; border-bottom: 1px solid #f0f0f0; }
@@ -40,49 +46,72 @@
     .hm-wrap { display: flex; overflow-x: auto; gap: 8px; padding: 10px 5px; -webkit-overflow-scrolling: touch; }
     .hm-col { display: flex; flex-direction: column; gap: 4px; align-items: center; flex-shrink: 0; }
     .hm-cell { width: 19px; height: 19px; border-radius: 4px; }
+
+    /* POPUP MODAL - Untuk pilihan Tak, Lewat, Awal, Jemaah */
+    .popup { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000; }
+    .popup.show { display: flex; }
+    .popup-box { background: #fff; padding: 25px; border-radius: 28px; width: 85%; max-width: 320px; text-align: center; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+    .grid button { border: 0; padding: 16px; border-radius: 14px; font-weight: bold; cursor: pointer; color: #fff; font-size: 14px; }
   </style>
 </head>
 <body>
 
 <div id="auth-screen" class="card">
   <h2>Solat Tracker Pro</h2>
-  <p style="color:#666">Cloud Sync Enabled</p>
+  <p style="color:#666">Sila log masuk / daftar</p>
   <input type="email" id="email" placeholder="Emel">
   <input type="password" id="password" placeholder="Kata Laluan">
-  <button class="btn-login" onclick="authAction()">MASUK / DAFTAR</button>
+  <button class="btn-login" onclick="authAction()">MASUK</button>
   <p id="auth-msg" style="font-size: 12px; color: #e74c3c; margin-top: 10px;"></p>
 </div>
 
 <div class="container" id="app-screen">
   <button class="btn-menu" onclick="logout()">LOGOUT</button>
   <h1>Solat Tracker Pro</h1>
-  <div id="fullDateText" class="subdate">Memuatkan...</div>
+  <div id="fullDateText" class="subdate">Sila tunggu...</div>
+
+  <div class="card">
+    <div class="date-scroll" id="dateBar"></div>
+  </div>
 
   <div class="card" id="prayerList"></div>
 
   <div class="card">
-    <h4 style="margin:0 0 10px 0">Heatmap (Supabase Cloud)</h4>
+    <h4 style="margin:0 0 10px 0">Heatmap Cloud</h4>
     <div class="hm-wrap" id="heatmapGrid"></div>
   </div>
 </div>
 
+<div class="popup" id="modal">
+  <div class="popup-box">
+    <h3 id="modalTitle" style="margin:0; text-transform: uppercase;">STATUS SOLAT</h3>
+    <p id="modalSub" style="font-size:12px; color:#666; margin:5px 0 0 0"></p>
+    <div class="grid">
+      <button style="background:var(--red)" onclick="submitStatus(0)">Tak</button>
+      <button style="background:var(--yellow); color:#000" onclick="submitStatus(1)">Lewat</button>
+      <button style="background:var(--green)" onclick="submitStatus(2)">Awal</button>
+      <button style="background:var(--gold)" onclick="submitStatus(3)">Jemaah</button>
+    </div>
+    <button style="margin-top:20px; background:none; border:0; color:#666; font-weight:bold; cursor:pointer" onclick="closeModal()">BATAL</button>
+  </div>
+</div>
+
 <script>
-  // CONFIG SUPABASE ANDA
   const SB_URL = "https://doekvketftrtaetcrdnz.supabase.co";
   const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvZWt2a2V0ZnRydGFldGNyZG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNzgzNjcsImV4cCI6MjA4Mzk1NDM2N30.yc3g2mNCGpQCE3E90UcP0zb0g4NFLDv_2ZgtlXBHzMc"; 
   const sb = supabase.createClient(SB_URL, SB_KEY);
 
   let user = null;
   let selectedDate = new Date().toLocaleDateString('sv');
+  let currentSolat = "";
   let cache = {};
 
-  // SEMAK SESI LOGIN
   async function checkUser() {
     const { data: { session } } = await sb.auth.getSession();
     if (session) { user = session.user; initApp(); }
   }
 
-  // LOGIN & DAFTAR AUTOMATIK
   async function authAction() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
@@ -100,13 +129,34 @@
   function initApp() {
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('app-screen').style.display = 'block';
-    updateDateDisplay();
+    initDateBar();
     fetchLogs();
   }
 
-  function updateDateDisplay() {
-    const opt = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
-    document.getElementById('fullDateText').innerText = new Date().toLocaleDateString('ms-MY', opt);
+  function initDateBar() {
+    const bar = document.getElementById("dateBar");
+    bar.innerHTML = "";
+    for(let i=14; i>=0; i--) {
+      let d = new Date(); d.setDate(d.getDate() - i);
+      let iso = d.toLocaleDateString('sv'); 
+      let chip = document.createElement("div");
+      chip.className = `day-box ${iso === selectedDate ? 'active' : ''}`;
+      chip.innerHTML = `<span style="font-size:10px">${d.toLocaleDateString('ms',{weekday:'short'})}</span><br><b>${d.getDate()}</b>`;
+      chip.onclick = () => { 
+        selectedDate = iso; 
+        document.querySelectorAll('.day-box').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active'); 
+        updateFullDateDisplay(iso);
+        renderPrayers(); 
+      };
+      bar.appendChild(chip);
+    }
+    updateFullDateDisplay(selectedDate);
+  }
+
+  function updateFullDateDisplay(isoDate) {
+    const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+    document.getElementById("fullDateText").innerText = new Date(isoDate).toLocaleDateString('ms-MY', options);
   }
 
   async function fetchLogs() {
@@ -124,23 +174,28 @@
     list.innerHTML = "";
     SOLAT.forEach(s => {
       let v = d[s] !== undefined ? d[s] : 4;
-      list.innerHTML += `
-        <div class="row">
-          <b style="text-transform:capitalize">${s}</b>
-          <div class="pill ${CSS[v]}" onclick="updateStatus('${s}', ${v})">${LABELS[v]}</div>
-        </div>`;
+      list.innerHTML += `<div class="row"><b style="text-transform:capitalize">${s}</b><div class="pill ${CSS[v]}" onclick="openModal('${s}')">${LABELS[v]}</div></div>`;
     });
   }
 
-  async function updateStatus(s, current) {
-    let next = (current + 1) % 4; // Kitaran 0-3 (Tak, Lewat, Awal, Jemaah)
+  function openModal(s) {
+    currentSolat = s;
+    document.getElementById("modalTitle").innerText = s;
+    document.getElementById("modalSub").innerText = "Tarikh: " + selectedDate;
+    document.getElementById("modal").classList.add("show");
+  }
+
+  function closeModal() { document.getElementById("modal").classList.remove("show"); }
+
+  async function submitStatus(val) {
+    closeModal();
     const up = { user_id: user.id, date: selectedDate };
-    up[s] = next;
+    up[currentSolat] = val;
 
     const { error } = await sb.from('solat_logs').upsert(up, { onConflict: 'user_id, date' });
     if (!error) { 
       if(!cache[selectedDate]) cache[selectedDate] = up;
-      cache[selectedDate][s] = next; 
+      cache[selectedDate][currentSolat] = val; 
       renderPrayers(); 
       renderHeatmap(); 
     }
