@@ -26,7 +26,7 @@
     .card { background: var(--card); border-radius: 24px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
 
     /* DATE SCROLL BAR */
-    .date-scroll { display: flex; overflow-x: auto; gap: 10px; padding: 10px 0; scrollbar-width: none; -webkit-overflow-scrolling: touch; cursor: grab; active: grabbing; }
+    .date-scroll { display: flex; overflow-x: auto; gap: 10px; padding: 10px 0; scrollbar-width: none; -webkit-overflow-scrolling: touch; cursor: grab; }
     .date-scroll::-webkit-scrollbar { display: none; }
     .day-box { min-width: 65px; padding: 15px 5px; background: #f0f0f0; border-radius: 18px; text-align: center; cursor: pointer; flex-shrink: 0; transition: 0.2s; color: #666; pointer-events: auto; }
     .day-box.active { background: #000; color: #fff; transform: scale(1.05); font-weight: bold; }
@@ -44,7 +44,7 @@
     .p-4 { background: var(--grey); } 
 
     /* HEATMAP */
-    .hm-wrap { display: flex; overflow-x: auto; gap: 8px; padding: 10px 5px; scrollbar-width: none; cursor: grab; }
+    .hm-wrap { display: flex; overflow-x: auto; gap: 8px; padding: 10px 5px; scrollbar-width: none; -webkit-overflow-scrolling: touch; cursor: grab; }
     .hm-wrap::-webkit-scrollbar { display: none; }
     .hm-col { display: flex; flex-direction: column; gap: 4px; align-items: center; flex-shrink: 0; }
     .hm-cell { width: 19px; height: 19px; border-radius: 4px; }
@@ -81,7 +81,9 @@
 
   <div class="card">
     <h4 style="margin:0 0 10px 0">Heatmap (Cloud)</h4>
-    <div class="hm-wrap" id="heatmapGrid"></div>
+    <div class="hm-wrap" id="heatmapContainer">
+      <div id="heatmapGrid" style="display: flex; gap: 8px;"></div>
+    </div>
   </div>
 </div>
 
@@ -109,7 +111,7 @@
   let currentSolatKey = "";
   let cache = {};
 
-  // --- DRAG TO SCROLL LOGIC ---
+  // --- DRAG SCROLL LOGIC ---
   function enableDragScroll(el) {
     let isDown = false;
     let startX;
@@ -150,7 +152,7 @@
     if (error) {
       const { error: signUpError } = await sb.auth.signUp({ email, password });
       if (signUpError) document.getElementById('auth-msg').innerText = signUpError.message;
-      else document.getElementById('auth-msg').innerText = "Akaun didaftar! Sila semak emel.";
+      else document.getElementById('auth-msg').innerText = "Semak emel anda.";
     } else { user = data.user; initApp(); }
   }
 
@@ -162,7 +164,7 @@
     initDateBar();
     fetchLogs();
     enableDragScroll(document.getElementById('dateBar'));
-    enableDragScroll(document.getElementById('heatmapGrid').parentElement);
+    enableDragScroll(document.getElementById('heatmapContainer'));
   }
 
   function initDateBar() {
@@ -206,7 +208,7 @@
     list.innerHTML = "";
     SOLAT.forEach(s => {
       let v = d[s] !== undefined ? d[s] : 4;
-      list.innerHTML += `<div class="row"><b style="text-transform:capitalize">${s}</b><div class="pill ${CSS[v]}" onclick="openModal('${s}')">${LABELS[v]}</div></div>`;
+      list.innerHTML += `<div class="row"><b>${s.toUpperCase()}</b><div class="pill ${CSS[v]}" onclick="openModal('${s}')">${LABELS[v]}</div></div>`;
     });
   }
 
@@ -233,7 +235,7 @@
   }
 
   function renderHeatmap() {
-    const wrap = document.getElementById("heatmapGrid").parentElement;
+    const container = document.getElementById("heatmapContainer");
     const grid = document.getElementById("heatmapGrid");
     grid.innerHTML = "";
     for(let i=29; i>=0; i--) {
@@ -248,7 +250,7 @@
       });
       grid.appendChild(col);
     }
-    setTimeout(() => { wrap.scrollLeft = wrap.scrollWidth; }, 100);
+    setTimeout(() => { container.scrollLeft = container.scrollWidth; }, 100);
   }
 
   window.onload = checkUser;
