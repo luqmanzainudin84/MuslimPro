@@ -1,107 +1,274 @@
 <!DOCTYPE html>
 <html lang="ms">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pilih Tarikh Center</title>
-    <style>
-        /* Mengekalkan gaya asal anda dan menambah center setting */
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #f4f4f4;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Solat Tracker Pro - Cloud</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root { 
+      --bg: #f8f9fa; --card: #ffffff; 
+      --red: #e74c3c; --yellow: #f1c40f; 
+      --green: #2ecc71; --gold: #f39c12; --grey: #aaa; 
+    }
+    body { margin:0; background: var(--bg); font-family: system-ui, -apple-system, sans-serif; color: #333; overflow-x: hidden; user-select: none; }
+    
+    /* AUTH SCREEN */
+    #auth-screen { max-width: 400px; margin: 80px auto; padding: 25px; text-align: center; }
+    .btn-login { background: #000; color: #fff; border: none; padding: 15px; width: 100%; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    input { width: 100%; padding: 14px; margin: 8px 0; border-radius: 12px; border: 1px solid #ddd; box-sizing: border-box; font-size: 16px; }
 
-        .main-wrapper {
-            text-align: center;
-        }
+    /* APP LAYOUT */
+    .container { max-width: 430px; margin: auto; padding: 16px; position: relative; display: none; }
+    .btn-logout { position: absolute; top: 15px; right: 16px; background: #000; color: #fff; text-decoration: none; padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer; border: none; z-index: 100; }
+    h1 { text-align: center; margin: 10px 0 0 0; font-size: 22px; }
+    .subdate { text-align: center; color: #666; margin-bottom: 20px; font-size: 14px; min-height: 20px; }
+    .card { background: var(--card); border-radius: 24px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
 
-        /* INI BAHAGIAN YANG DIUBAH UNTUK JADI CENTRE SCREEN */
-        #datePickerContainer {
-            display: none; /* Sembunyi asal */
-            position: fixed; /* Tetap pada skrin */
-            top: 50%; /* 50% dari atas */
-            left: 50%; /* 50% dari kiri */
-            transform: translate(-50%, -50%); /* Offset balik untuk betul-betul center */
-            background-color: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0px 10px 30px rgba(0,0,0,0.3);
-            z-index: 9999;
-            border: 1px solid #ddd;
-        }
+    /* DATE SCROLL BAR */
+    .date-scroll { display: flex; overflow-x: auto; gap: 10px; padding: 10px 0; scrollbar-width: none; -webkit-overflow-scrolling: touch; cursor: grab; scroll-behavior: smooth; }
+    .date-scroll::-webkit-scrollbar { display: none; }
+    .day-box { min-width: 65px; padding: 15px 5px; background: #f0f0f0; border-radius: 18px; text-align: center; cursor: pointer; flex-shrink: 0; transition: 0.2s; color: #666; pointer-events: auto; }
+    .day-box.active { background: #000; color: #fff; transform: scale(1.05); font-weight: bold; }
 
-        /* Overlay gelap di belakang supaya nampak fokus */
-        #overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.4);
-            z-index: 9998;
-        }
+    /* PRAYER LIST */
+    .row { display: flex; justify-content: space-between; align-items: center; padding: 14px 5px; border-bottom: 1px solid #f0f0f0; }
+    .row:last-child { border-bottom: none; }
+    .pill { padding: 10px 22px; border-radius: 25px; color: #fff; font-weight: bold; cursor: pointer; min-width: 105px; text-align: center; font-size: 14px; border: none; transition: 0.2s; }
+    
+    /* COLORS */
+    .p-0 { background: var(--red); } 
+    .p-1 { background: var(--yellow); color: #000; } 
+    .p-2 { background: var(--green); } 
+    .p-3 { background: var(--green); border-bottom: 4px solid var(--gold); } 
+    .p-4 { background: var(--grey); } 
 
-        .btn-utama {
-            padding: 15px 30px;
-            font-size: 18px;
-            cursor: pointer;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 8px;
-        }
+    /* HEATMAP */
+    .hm-wrap { display: flex; overflow-x: auto; gap: 8px; padding: 10px 5px; scrollbar-width: none; -webkit-overflow-scrolling: touch; cursor: grab; }
+    .hm-wrap::-webkit-scrollbar { display: none; }
+    .hm-col { display: flex; flex-direction: column; gap: 4px; align-items: center; flex-shrink: 0; }
+    .hm-cell { width: 19px; height: 19px; border-radius: 4px; }
 
-        input[type="date"] {
-            padding: 10px;
-            font-size: 16px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            margin-bottom: 15px;
-        }
-
-        .btn-close {
-            background-color: #ff4d4d;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-    </style>
+    /* POPUP MODAL */
+    .popup { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000; }
+    .popup.show { display: flex; }
+    .popup-box { background: #fff; padding: 25px; border-radius: 28px; width: 85%; max-width: 320px; text-align: center; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+    .grid button { border: 0; padding: 16px; border-radius: 14px; font-weight: bold; cursor: pointer; color: #fff; font-size: 14px; }
+  </style>
 </head>
 <body>
 
-    <div class="main-wrapper">
-        <button class="btn-utama" onclick="bukaTarikh()">Tekan Pilih Tarikh</button>
+<div id="auth-screen" class="card">
+  <h2>Solat Tracker Pro</h2>
+  <p style="color:#666">Cloud Sync Enabled</p>
+  <input type="email" id="email" placeholder="Alamat Emel">
+  <input type="password" id="password" placeholder="Kata Laluan">
+  <button class="btn-login" onclick="authAction()">LOG MASUK / DAFTAR</button>
+  <p id="auth-msg" style="font-size: 12px; color: #e74c3c; margin-top: 10px;"></p>
+</div>
+
+<div class="container" id="app-screen">
+  <button class="btn-logout" onclick="logout()">LOGOUT</button>
+  <h1>Solat Tracker Pro</h1>
+  <div id="fullDateText" class="subdate">Sila tunggu...</div>
+
+  <div class="card">
+    <div class="date-scroll" id="dateBar"></div>
+  </div>
+
+  <div class="card" id="prayerList"></div>
+
+  <div class="card">
+    <h4 style="margin:0 0 10px 0">Heatmap (Cloud)</h4>
+    <div class="hm-wrap" id="heatmapContainer">
+      <div id="heatmapGrid" style="display: flex; gap: 8px;"></div>
     </div>
+  </div>
+</div>
 
-    <div id="overlay" onclick="tutupTarikh()"></div>
-
-    <div id="datePickerContainer">
-        <h3>Sila Pilih Tarikh</h3>
-        <input type="date" id="inputTarikh">
-        <br>
-        <button class="btn-close" onclick="tutupTarikh()">Tutup</button>
+<div class="popup" id="modal">
+  <div class="popup-box">
+    <h3 id="modalTitle" style="margin:0; text-transform: uppercase;">STATUS SOLAT</h3>
+    <p id="modalSub" style="font-size:12px; color:#666; margin:5px 0 0 0"></p>
+    <div class="grid">
+      <button style="background:var(--red)" onclick="submitStatus(0)">Tak</button>
+      <button style="background:var(--yellow); color:#000" onclick="submitStatus(1)">Lewat</button>
+      <button style="background:var(--green)" onclick="submitStatus(2)">Awal</button>
+      <button style="background:var(--gold)" onclick="submitStatus(3)">Jemaah</button>
     </div>
+    <button style="margin-top:20px; background:none; border:0; color:#666; font-weight:bold; cursor:pointer" onclick="closeModal()">BATAL</button>
+  </div>
+</div>
 
-    <script>
-        function bukaTarikh() {
-            document.getElementById('datePickerContainer').style.display = 'block';
-            document.getElementById('overlay').style.display = 'block';
-        }
+<script>
+  const SB_URL = "https://doekvketftrtaetcrdnz.supabase.co";
+  const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvZWt2a2V0ZnRydGFldGNyZG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNzgzNjcsImV4cCI6MjA4Mzk1NDM2N30.yc3g2mNCGpQCE3E90UcP0zb0g4NFLDv_2ZgtlXBHzMc"; 
+  const sb = supabase.createClient(SB_URL, SB_KEY);
 
-        function tutupTarikh() {
-            document.getElementById('datePickerContainer').style.display = 'none';
-            document.getElementById('overlay').style.display = 'none';
-        }
-    </script>
+  let user = null;
+  let selectedDate = new Date().toLocaleDateString('sv');
+  let currentSolatKey = "";
+  let cache = {};
 
+  function enableDragScroll(el) {
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+
+    el.addEventListener('mousedown', (e) => {
+      isDown = true;
+      el.style.cursor = 'grabbing';
+      startX = e.pageX - el.offsetLeft;
+      scrollLeft = el.scrollLeft;
+    });
+    el.addEventListener('mouseleave', () => {
+      isDown = false;
+      el.style.cursor = 'grab';
+    });
+    el.addEventListener('mouseup', () => {
+      isDown = false;
+      el.style.cursor = 'grab';
+    });
+    el.addEventListener('mousemove', (e) => {
+      if (!isDown) return;
+      e.preventDefault();
+      const x = e.pageX - el.offsetLeft;
+      const walk = (x - startX) * 2;
+      el.scrollLeft = scrollLeft - walk;
+    });
+  }
+
+  async function checkUser() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) { user = session.user; initApp(); }
+  }
+
+  async function authAction() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) {
+      const { error: signUpError } = await sb.auth.signUp({ email, password });
+      if (signUpError) document.getElementById('auth-msg').innerText = signUpError.message;
+      else document.getElementById('auth-msg').innerText = "Semak emel anda.";
+    } else { user = data.user; initApp(); }
+  }
+
+  function logout() { sb.auth.signOut().then(() => location.reload()); }
+
+  function initApp() {
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+    initDateBar();
+    fetchLogs();
+    enableDragScroll(document.getElementById('dateBar'));
+    enableDragScroll(document.getElementById('heatmapContainer'));
+  }
+
+  function initDateBar() {
+    const bar = document.getElementById("dateBar");
+    bar.innerHTML = "";
+    for(let i=30; i>=0; i--) {
+      let d = new Date(); d.setDate(d.getDate() - i);
+      let iso = d.toLocaleDateString('sv'); 
+      let chip = document.createElement("div");
+      chip.className = `day-box ${iso === selectedDate ? 'active' : ''}`;
+      chip.innerHTML = `<span style="font-size:10px">${d.toLocaleDateString('ms',{weekday:'short'})}</span><br><b>${d.getDate()}</b>`;
+      
+      chip.onclick = () => { 
+        selectedDate = iso; 
+        document.querySelectorAll('.day-box').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active'); 
+        updateFullDateDisplay(iso);
+        renderPrayers(); 
+        
+        // --- LOGIK CENTER SCREEN START ---
+        const scrollContainer = document.getElementById('dateBar');
+        const offsetLeft = chip.offsetLeft;
+        const chipWidth = chip.offsetWidth;
+        const containerWidth = scrollContainer.offsetWidth;
+        scrollContainer.scrollLeft = offsetLeft - (containerWidth / 2) + (chipWidth / 2);
+        // --- LOGIK CENTER SCREEN END ---
+      };
+      bar.appendChild(chip);
+
+      // Auto-center untuk tarikh hari ini bila app mula
+      if (iso === selectedDate) {
+          setTimeout(() => {
+              const containerWidth = bar.offsetWidth;
+              bar.scrollLeft = chip.offsetLeft - (containerWidth / 2) + (chip.offsetWidth / 2);
+          }, 200);
+      }
+    }
+    updateFullDateDisplay(selectedDate);
+  }
+
+  function updateFullDateDisplay(isoDate) {
+    const opt = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+    document.getElementById("fullDateText").innerText = new Date(isoDate).toLocaleDateString('ms-MY', opt);
+  }
+
+  async function fetchLogs() {
+    const { data } = await sb.from('solat_logs').select('*').eq('user_id', user.id);
+    if (data) { data.forEach(d => cache[d.date] = d); renderPrayers(); renderHeatmap(); }
+  }
+
+  function renderPrayers() {
+    const SOLAT = ["subuh", "zohor", "asar", "maghrib", "isyak"];
+    const LABELS = ["Tak", "Lewat", "Awal", "Jemaah", "Belum"];
+    const CSS = ["p-0", "p-1", "p-2", "p-3", "p-4"];
+    const list = document.getElementById("prayerList");
+    const d = cache[selectedDate] || {};
+    list.innerHTML = "";
+    SOLAT.forEach(s => {
+      let v = d[s] !== undefined ? d[s] : 4;
+      list.innerHTML += `<div class="row"><b>${s.toUpperCase()}</b><div class="pill ${CSS[v]}" onclick="openModal('${s}')">${LABELS[v]}</div></div>`;
+    });
+  }
+
+  function openModal(s) {
+    currentSolatKey = s;
+    document.getElementById("modalTitle").innerText = s;
+    document.getElementById("modalSub").innerText = "Tarikh: " + selectedDate;
+    document.getElementById("modal").classList.add("show");
+  }
+
+  function closeModal() { document.getElementById("modal").classList.remove("show"); }
+
+  async function submitStatus(val) {
+    closeModal();
+    const up = { user_id: user.id, date: selectedDate };
+    up[currentSolatKey] = val;
+    const { error } = await sb.from('solat_logs').upsert(up, { onConflict: 'user_id, date' });
+    if (!error) { 
+      if(!cache[selectedDate]) cache[selectedDate] = up;
+      cache[selectedDate][currentSolatKey] = val; 
+      renderPrayers(); 
+      renderHeatmap(); 
+    }
+  }
+
+  function renderHeatmap() {
+    const container = document.getElementById("heatmapContainer");
+    const grid = document.getElementById("heatmapGrid");
+    grid.innerHTML = "";
+    for(let i=29; i>=0; i--) {
+      let d = new Date(); d.setDate(d.getDate() - i);
+      let iso = d.toLocaleDateString('sv');
+      let data = cache[iso] || {};
+      let col = document.createElement("div"); col.className = "hm-col";
+      col.innerHTML = `<span style="font-size:8px; color:#999">${d.getDate()}</span>`;
+      ["subuh","zohor","asar","maghrib","isyak"].forEach(s => {
+        let v = data[s] !== undefined ? data[s] : 4;
+        col.innerHTML += `<div class="hm-cell ${["p-0","p-1","p-2","p-3","p-4"][v]}"></div>`;
+      });
+      grid.appendChild(col);
+    }
+    setTimeout(() => { container.scrollLeft = container.scrollWidth; }, 100);
+  }
+
+  window.onload = checkUser;
+</script>
 </body>
 </html>
