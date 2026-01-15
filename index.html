@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Solat Tracker Pro</title>
+  <title>Solat Tracker Pro - Cloud</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root { 
@@ -11,28 +11,33 @@
       --red: #e74c3c; --yellow: #f1c40f; 
       --green: #2ecc71; --gold: #f39c12; --grey: #aaa; 
     }
-    body { margin:0; background: var(--bg); font-family: system-ui, sans-serif; color: #333; }
+    body { margin:0; background: var(--bg); font-family: system-ui, -apple-system, sans-serif; color: #333; }
     .container { max-width: 430px; margin: auto; padding: 16px; position: relative; display: none; }
-    #auth-screen { max-width: 400px; margin: 80px auto; padding: 25px; text-align: center; }
     
-    .btn-menu { position: absolute; top: 15px; right: 16px; background: #000; color: #fff; text-decoration: none; padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer; border: none; }
+    /* LOGIN UI */
+    #auth-screen { max-width: 400px; margin: 80px auto; padding: 25px; text-align: center; }
+    .btn-login { background: #000; color: #fff; border: none; padding: 15px; width: 100%; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    input { width: 100%; padding: 14px; margin: 8px 0; border-radius: 12px; border: 1px solid #ddd; box-sizing: border-box; }
+
+    /* APP UI */
+    .btn-menu { position: absolute; top: 15px; right: 16px; background: #000; color: #fff; text-decoration: none; padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer; border: none; z-index: 100; }
     h1 { text-align: center; margin: 10px 0 0 0; font-size: 22px; }
     .subdate { text-align: center; color: #666; margin-bottom: 20px; font-size: 14px; }
     .card { background: var(--card); border-radius: 24px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    
+
+    /* PRAYER ROWS */
     .row { display: flex; justify-content: space-between; align-items: center; padding: 14px 5px; border-bottom: 1px solid #f0f0f0; }
-    .pill { padding: 10px 22px; border-radius: 25px; color: #fff; font-weight: bold; cursor: pointer; min-width: 100px; text-align: center; font-size: 14px; border: none; }
+    .pill { padding: 10px 22px; border-radius: 25px; color: #fff; font-weight: bold; cursor: pointer; min-width: 105px; text-align: center; font-size: 14px; border: none; transition: 0.2s; }
     
+    /* STATUS COLORS */
     .p-0 { background: var(--red); } 
     .p-1 { background: var(--yellow); color: #000; } 
     .p-2 { background: var(--green); } 
     .p-3 { background: var(--green); border-bottom: 4px solid var(--gold); } 
     .p-4 { background: var(--grey); } 
 
-    input { width: 100%; padding: 14px; margin: 10px 0; border-radius: 12px; border: 1px solid #ddd; box-sizing: border-box; }
-    .btn-login { background: #000; color: #fff; border: none; padding: 15px; width: 100%; border-radius: 12px; font-weight: bold; cursor: pointer; }
-    
-    .hm-wrap { display: flex; overflow-x: auto; gap: 8px; padding: 10px 5px; }
+    /* HEATMAP */
+    .hm-wrap { display: flex; overflow-x: auto; gap: 8px; padding: 10px 5px; -webkit-overflow-scrolling: touch; }
     .hm-col { display: flex; flex-direction: column; gap: 4px; align-items: center; flex-shrink: 0; }
     .hm-cell { width: 19px; height: 19px; border-radius: 4px; }
   </style>
@@ -41,40 +46,43 @@
 
 <div id="auth-screen" class="card">
   <h2>Solat Tracker Pro</h2>
-  <p style="color:#666">Sila log masuk / daftar</p>
+  <p style="color:#666">Cloud Sync Enabled</p>
   <input type="email" id="email" placeholder="Emel">
   <input type="password" id="password" placeholder="Kata Laluan">
-  <button class="btn-login" onclick="authAction()">MASUK</button>
+  <button class="btn-login" onclick="authAction()">MASUK / DAFTAR</button>
   <p id="auth-msg" style="font-size: 12px; color: #e74c3c; margin-top: 10px;"></p>
 </div>
 
 <div class="container" id="app-screen">
   <button class="btn-menu" onclick="logout()">LOGOUT</button>
   <h1>Solat Tracker Pro</h1>
-  <div id="fullDateText" class="subdate">Memuatkan tarikh...</div>
+  <div id="fullDateText" class="subdate">Memuatkan...</div>
 
   <div class="card" id="prayerList"></div>
 
   <div class="card">
-    <h4 style="margin:0 0 10px 0">Heatmap Cloud</h4>
+    <h4 style="margin:0 0 10px 0">Heatmap (Supabase Cloud)</h4>
     <div class="hm-wrap" id="heatmapGrid"></div>
   </div>
 </div>
 
 <script>
+  // CONFIG SUPABASE ANDA
   const SB_URL = "https://doekvketftrtaetcrdnz.supabase.co";
-  const SB_KEY = "LETAK_ANON_KEY_EYJ_DI_SINI"; // Masukkan key eyJ... anda di sini
+  const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvZWt2a2V0ZnRydGFldGNyZG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNzgzNjcsImV4cCI6MjA4Mzk1NDM2N30.yc3g2mNCGpQCE3E90UcP0zb0g4NFLDv_2ZgtlXBHzMc"; 
   const sb = supabase.createClient(SB_URL, SB_KEY);
 
   let user = null;
   let selectedDate = new Date().toLocaleDateString('sv');
   let cache = {};
 
+  // SEMAK SESI LOGIN
   async function checkUser() {
     const { data: { session } } = await sb.auth.getSession();
     if (session) { user = session.user; initApp(); }
   }
 
+  // LOGIN & DAFTAR AUTOMATIK
   async function authAction() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
@@ -83,7 +91,7 @@
     if (error) {
       const { error: signUpError } = await sb.auth.signUp({ email, password });
       if (signUpError) document.getElementById('auth-msg').innerText = signUpError.message;
-      else document.getElementById('auth-msg').innerText = "Semak emel pengesahan!";
+      else document.getElementById('auth-msg').innerText = "Akaun didaftar! Sila semak emel.";
     } else { user = data.user; initApp(); }
   }
 
@@ -116,12 +124,16 @@
     list.innerHTML = "";
     SOLAT.forEach(s => {
       let v = d[s] !== undefined ? d[s] : 4;
-      list.innerHTML += `<div class="row"><b style="text-transform:capitalize">${s}</b><div class="pill ${CSS[v]}" onclick="updateStatus('${s}', ${v})">${LABELS[v]}</div></div>`;
+      list.innerHTML += `
+        <div class="row">
+          <b style="text-transform:capitalize">${s}</b>
+          <div class="pill ${CSS[v]}" onclick="updateStatus('${s}', ${v})">${LABELS[v]}</div>
+        </div>`;
     });
   }
 
   async function updateStatus(s, current) {
-    let next = (current + 1) % 4;
+    let next = (current + 1) % 4; // Kitaran 0-3 (Tak, Lewat, Awal, Jemaah)
     const up = { user_id: user.id, date: selectedDate };
     up[s] = next;
 
