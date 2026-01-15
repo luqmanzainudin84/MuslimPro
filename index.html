@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Solat Tracker Pro - Cloud</title>
+  <title>Solat Tracker Pro - Official Cloud</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root { 
@@ -11,31 +11,32 @@
       --red: #e74c3c; --yellow: #f1c40f; 
       --green: #2ecc71; --gold: #f39c12; --grey: #aaa; 
     }
-    body { margin:0; background: var(--bg); font-family: system-ui, -apple-system, sans-serif; color: #333; }
-    .container { max-width: 430px; margin: auto; padding: 16px; position: relative; display: none; }
+    body { margin:0; background: var(--bg); font-family: system-ui, -apple-system, sans-serif; color: #333; overflow-x: hidden; }
     
     /* AUTH SCREEN */
     #auth-screen { max-width: 400px; margin: 80px auto; padding: 25px; text-align: center; }
     .btn-login { background: #000; color: #fff; border: none; padding: 15px; width: 100%; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-    input { width: 100%; padding: 14px; margin: 8px 0; border-radius: 12px; border: 1px solid #ddd; box-sizing: border-box; }
+    input { width: 100%; padding: 14px; margin: 8px 0; border-radius: 12px; border: 1px solid #ddd; box-sizing: border-box; font-size: 16px; }
 
-    /* APP HEADER & NAV */
-    .btn-menu { position: absolute; top: 15px; right: 16px; background: #000; color: #fff; text-decoration: none; padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer; border: none; z-index: 100; }
+    /* APP LAYOUT */
+    .container { max-width: 430px; margin: auto; padding: 16px; position: relative; display: none; }
+    .btn-logout { position: absolute; top: 15px; right: 16px; background: #000; color: #fff; text-decoration: none; padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer; border: none; z-index: 100; }
     h1 { text-align: center; margin: 10px 0 0 0; font-size: 22px; }
     .subdate { text-align: center; color: #666; margin-bottom: 20px; font-size: 14px; min-height: 20px; }
     .card { background: var(--card); border-radius: 24px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
 
-    /* DATE SCROLL BAR - Bagi tarikh boleh pilih */
-    .date-scroll { display: flex; overflow-x: auto; gap: 10px; padding: 10px 0; scrollbar-width: none; -webkit-overflow-scrolling: touch; cursor: grab; }
+    /* DATE SCROLL BAR */
+    .date-scroll { display: flex; overflow-x: auto; gap: 10px; padding: 10px 0; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
     .date-scroll::-webkit-scrollbar { display: none; }
     .day-box { min-width: 65px; padding: 15px 5px; background: #f0f0f0; border-radius: 18px; text-align: center; cursor: pointer; flex-shrink: 0; transition: 0.2s; color: #666; }
     .day-box.active { background: #000; color: #fff; transform: scale(1.05); font-weight: bold; }
 
-    /* PRAYER ROWS */
+    /* PRAYER LIST */
     .row { display: flex; justify-content: space-between; align-items: center; padding: 14px 5px; border-bottom: 1px solid #f0f0f0; }
+    .row:last-child { border-bottom: none; }
     .pill { padding: 10px 22px; border-radius: 25px; color: #fff; font-weight: bold; cursor: pointer; min-width: 105px; text-align: center; font-size: 14px; border: none; transition: 0.2s; }
     
-    /* STATUS COLORS */
+    /* COLORS */
     .p-0 { background: var(--red); } 
     .p-1 { background: var(--yellow); color: #000; } 
     .p-2 { background: var(--green); } 
@@ -43,11 +44,12 @@
     .p-4 { background: var(--grey); } 
 
     /* HEATMAP */
-    .hm-wrap { display: flex; overflow-x: auto; gap: 8px; padding: 10px 5px; -webkit-overflow-scrolling: touch; }
+    .hm-wrap { display: flex; overflow-x: auto; gap: 8px; padding: 10px 5px; scrollbar-width: none; }
+    .hm-wrap::-webkit-scrollbar { display: none; }
     .hm-col { display: flex; flex-direction: column; gap: 4px; align-items: center; flex-shrink: 0; }
     .hm-cell { width: 19px; height: 19px; border-radius: 4px; }
 
-    /* POPUP MODAL - Untuk pilihan Tak, Lewat, Awal, Jemaah */
+    /* POPUP MODAL */
     .popup { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000; }
     .popup.show { display: flex; }
     .popup-box { background: #fff; padding: 25px; border-radius: 28px; width: 85%; max-width: 320px; text-align: center; }
@@ -59,15 +61,15 @@
 
 <div id="auth-screen" class="card">
   <h2>Solat Tracker Pro</h2>
-  <p style="color:#666">Sila log masuk / daftar</p>
-  <input type="email" id="email" placeholder="Emel">
+  <p style="color:#666">Cloud Sync Enabled</p>
+  <input type="email" id="email" placeholder="Alamat Emel">
   <input type="password" id="password" placeholder="Kata Laluan">
-  <button class="btn-login" onclick="authAction()">MASUK</button>
+  <button class="btn-login" onclick="authAction()">LOG MASUK / DAFTAR</button>
   <p id="auth-msg" style="font-size: 12px; color: #e74c3c; margin-top: 10px;"></p>
 </div>
 
 <div class="container" id="app-screen">
-  <button class="btn-menu" onclick="logout()">LOGOUT</button>
+  <button class="btn-logout" onclick="logout()">LOGOUT</button>
   <h1>Solat Tracker Pro</h1>
   <div id="fullDateText" class="subdate">Sila tunggu...</div>
 
@@ -78,14 +80,14 @@
   <div class="card" id="prayerList"></div>
 
   <div class="card">
-    <h4 style="margin:0 0 10px 0">Heatmap Cloud</h4>
+    <h4 style="margin:0 0 10px 0">Heatmap (Supabase Cloud)</h4>
     <div class="hm-wrap" id="heatmapGrid"></div>
   </div>
 </div>
 
 <div class="popup" id="modal">
   <div class="popup-box">
-    <h3 id="modalTitle" style="margin:0; text-transform: uppercase;">STATUS SOLAT</h3>
+    <h3 id="modalTitle" style="margin:0; text-transform: uppercase; letter-spacing: 1px;">STATUS SOLAT</h3>
     <p id="modalSub" style="font-size:12px; color:#666; margin:5px 0 0 0"></p>
     <div class="grid">
       <button style="background:var(--red)" onclick="submitStatus(0)">Tak</button>
@@ -98,18 +100,23 @@
 </div>
 
 <script>
+  // CONFIGURATION
   const SB_URL = "https://doekvketftrtaetcrdnz.supabase.co";
   const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvZWt2a2V0ZnRydGFldGNyZG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNzgzNjcsImV4cCI6MjA4Mzk1NDM2N30.yc3g2mNCGpQCE3E90UcP0zb0g4NFLDv_2ZgtlXBHzMc"; 
   const sb = supabase.createClient(SB_URL, SB_KEY);
 
   let user = null;
-  let selectedDate = new Date().toLocaleDateString('sv');
-  let currentSolat = "";
+  let selectedDate = new Date().toLocaleDateString('sv'); // Default tarikh hari ini
+  let currentSolatKey = "";
   let cache = {};
 
+  // AUTHENTICATION LOGIC
   async function checkUser() {
     const { data: { session } } = await sb.auth.getSession();
-    if (session) { user = session.user; initApp(); }
+    if (session) {
+      user = session.user;
+      initApp();
+    }
   }
 
   async function authAction() {
@@ -120,12 +127,18 @@
     if (error) {
       const { error: signUpError } = await sb.auth.signUp({ email, password });
       if (signUpError) document.getElementById('auth-msg').innerText = signUpError.message;
-      else document.getElementById('auth-msg').innerText = "Akaun didaftar! Sila semak emel.";
-    } else { user = data.user; initApp(); }
+      else document.getElementById('auth-msg').innerText = "Akaun didaftar! Sila semak emel anda.";
+    } else {
+      user = data.user;
+      initApp();
+    }
   }
 
-  function logout() { sb.auth.signOut().then(() => location.reload()); }
+  function logout() {
+    sb.auth.signOut().then(() => location.reload());
+  }
 
+  // INITIALIZATION
   function initApp() {
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('app-screen').style.display = 'block';
@@ -136,7 +149,8 @@
   function initDateBar() {
     const bar = document.getElementById("dateBar");
     bar.innerHTML = "";
-    for(let i=14; i>=0; i--) {
+    // Menjana 30 hari ke belakang
+    for(let i=30; i>=0; i--) {
       let d = new Date(); d.setDate(d.getDate() - i);
       let iso = d.toLocaleDateString('sv'); 
       let chip = document.createElement("div");
@@ -152,6 +166,8 @@
       bar.appendChild(chip);
     }
     updateFullDateDisplay(selectedDate);
+    // Autoscroll bar tarikh ke tarikh hari ini (paling kanan)
+    setTimeout(() => { bar.scrollLeft = bar.scrollWidth; }, 100);
   }
 
   function updateFullDateDisplay(isoDate) {
@@ -159,11 +175,17 @@
     document.getElementById("fullDateText").innerText = new Date(isoDate).toLocaleDateString('ms-MY', options);
   }
 
+  // DATA FETCHING
   async function fetchLogs() {
     const { data } = await sb.from('solat_logs').select('*').eq('user_id', user.id);
-    if (data) { data.forEach(d => cache[d.date] = d); renderPrayers(); renderHeatmap(); }
+    if (data) {
+      data.forEach(d => cache[d.date] = d);
+      renderPrayers();
+      renderHeatmap();
+    }
   }
 
+  // UI RENDERING
   function renderPrayers() {
     const SOLAT = ["subuh", "zohor", "asar", "maghrib", "isyak"];
     const LABELS = ["Tak", "Lewat", "Awal", "Jemaah", "Belum"];
@@ -174,41 +196,52 @@
     list.innerHTML = "";
     SOLAT.forEach(s => {
       let v = d[s] !== undefined ? d[s] : 4;
-      list.innerHTML += `<div class="row"><b style="text-transform:capitalize">${s}</b><div class="pill ${CSS[v]}" onclick="openModal('${s}')">${LABELS[v]}</div></div>`;
+      list.innerHTML += `
+        <div class="row">
+          <b style="text-transform:capitalize">${s}</b>
+          <div class="pill ${CSS[v]}" onclick="openModal('${s}')">${LABELS[v]}</div>
+        </div>`;
     });
   }
 
   function openModal(s) {
-    currentSolat = s;
+    currentSolatKey = s;
     document.getElementById("modalTitle").innerText = s;
     document.getElementById("modalSub").innerText = "Tarikh: " + selectedDate;
     document.getElementById("modal").classList.add("show");
   }
 
-  function closeModal() { document.getElementById("modal").classList.remove("show"); }
+  function closeModal() {
+    document.getElementById("modal").classList.remove("show");
+  }
 
   async function submitStatus(val) {
     closeModal();
     const up = { user_id: user.id, date: selectedDate };
-    up[currentSolat] = val;
+    up[currentSolatKey] = val;
 
+    // Simpan ke Supabase (Upsert)
     const { error } = await sb.from('solat_logs').upsert(up, { onConflict: 'user_id, date' });
+    
     if (!error) { 
       if(!cache[selectedDate]) cache[selectedDate] = up;
-      cache[selectedDate][currentSolat] = val; 
+      cache[selectedDate][currentSolatKey] = val; 
       renderPrayers(); 
       renderHeatmap(); 
     }
   }
 
   function renderHeatmap() {
+    const wrap = document.querySelector(".hm-wrap");
     const grid = document.getElementById("heatmapGrid");
     grid.innerHTML = "";
+    // Heatmap untuk 30 hari ke belakang
     for(let i=29; i>=0; i--) {
       let d = new Date(); d.setDate(d.getDate() - i);
       let iso = d.toLocaleDateString('sv');
       let data = cache[iso] || {};
-      let col = document.createElement("div"); col.className = "hm-col";
+      let col = document.createElement("div"); 
+      col.className = "hm-col";
       col.innerHTML = `<span style="font-size:8px; color:#999">${d.getDate()}</span>`;
       ["subuh","zohor","asar","maghrib","isyak"].forEach(s => {
         let v = data[s] !== undefined ? data[s] : 4;
@@ -216,6 +249,8 @@
       });
       grid.appendChild(col);
     }
+    // Autoscroll heatmap ke tarikh hari ini (paling kanan)
+    setTimeout(() => { wrap.scrollLeft = wrap.scrollWidth; }, 100);
   }
 
   window.onload = checkUser;
